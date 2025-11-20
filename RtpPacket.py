@@ -2,6 +2,8 @@ import sys
 from time import time
 HEADER_SIZE = 12
 
+# comment de push len
+
 class RtpPacket:
     def __init__(self):
         # header và payload là thuộc tính instance (không dùng biến class)
