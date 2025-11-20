@@ -5,31 +5,40 @@ HEADER_SIZE = 12
 class RtpPacket:
     def __init__(self):
         # header và payload là thuộc tính instance (không dùng biến class)
-        self.header = bytearray(HEADER_SIZE)
-        self.payload = b''
+        self.header = bytearray(HEADER_SIZE) # khởi tạo header (12 bytes)
+        self.payload = b''  # payload (rỗng)
 
     def encode(self, version, padding, extension, cc, seqnum, marker, pt, ssrc, payload):
         """Encode the RTP packet with header fields and payload."""
-        timestamp = int(time())
-        header = bytearray(HEADER_SIZE)
+        timestamp = int(time()) # Lấy thời gian hiện tại làm timestamp
+        header = bytearray(HEADER_SIZE) # Tạo header mới
 
         # Byte 0: V(2), P(1), X(1), CC(4)
+        # Byte 0: Ghép 4 trường thành 1 byte
+        # version << 6: dịch version 6 bit sang trái (2 bit đầu)
+        # padding << 5: dịch padding 5 bit sang trái (bit thứ 3)
+        # extension << 4: dịch extension 4 bit sang trái (bit thứ 4)
+        # cc & 0x0F: lấy 4 bit cuối của cc
         header[0] = (version << 6) | (padding << 5) | (extension << 4) | (cc & 0x0F)
 
         # Byte 1: M(1), PT(7)
+        # Byte 1: Marker bit (1 bit) và Payload Type (7 bit)
         header[1] = ((marker & 0x01) << 7) | (pt & 0x7F)
 
-        # Seqnum (16 bit) - big endian
-        header[2] = (seqnum >> 8) & 0xFF
-        header[3] = seqnum & 0xFF
+        # Seqnum (16 bit) - big
+        # Sequence Number (16 bit) - chia thành 2 bytes
+        header[2] = (seqnum >> 8) & 0xFF # Byte cao nhất
+        header[3] = seqnum & 0xFF  # Byte thấp nhất
 
         # Timestamp (32 bit)
-        header[4] = (timestamp >> 24) & 0xFF
+        # Timestamp (32 bit) - chia thành 4 bytes
+        header[4] = (timestamp >> 24) & 0xFF # Byte cao nhất
         header[5] = (timestamp >> 16) & 0xFF
         header[6] = (timestamp >> 8) & 0xFF
-        header[7] = timestamp & 0xFF
+        header[7] = timestamp & 0xFF  # Byte thấp nhất
 
         # SSRC (32 bit)
+        # SSRC - Synchronization Source (32 bit)
         header[8]  = (ssrc >> 24) & 0xFF
         header[9]  = (ssrc >> 16) & 0xFF
         header[10] = (ssrc >> 8) & 0xFF
@@ -37,6 +46,7 @@ class RtpPacket:
 
         self.header = header
         # ensure payload is bytes type
+        # Đảm bảo payload là kiểu bytes
         self.payload = payload if isinstance(payload, (bytes, bytearray)) else bytes(payload)
 
     def decode(self, byteStream):
@@ -77,4 +87,4 @@ class RtpPacket:
     def getFrameHash(self):
         """Tạo hash duy nhất cho frame để sử dụng trong caching system"""
         import hashlib
-        return hashlib.md5(self.payload).hexdigest()[:16]
+        return hashlib.md5(self.payload).hexdigest()[:16] # Lấy 16 ký tự đầu
